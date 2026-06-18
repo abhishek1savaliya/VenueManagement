@@ -11,7 +11,9 @@ npm run db:push
 npm run dev
 ```
 
-Server runs at `http://localhost:3000`.
+Server runs at `http://localhost:3000` locally.
+
+Server runs at `https://venuemanagement.onrender.com` at production.
 
 ## API Overview
 
