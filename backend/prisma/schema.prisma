@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Venue {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  address     String   @db.Text
+  description String   @default("") @db.Text
+  status      String   @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([name], map: "idx_venues_name")
+  @@index([status], map: "idx_venues_status")
+  @@map("venues")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  actionType String   @map("action_type") @db.VarChar(20)
+  venueName  String   @map("venue_name") @db.VarChar(255)
+  venueId    Int?     @map("venue_id")
+  timestamp  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([timestamp(sort: Desc)], map: "idx_audit_logs_timestamp")
+  @@map("audit_logs")
+}
