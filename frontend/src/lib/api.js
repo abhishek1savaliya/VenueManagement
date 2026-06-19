@@ -29,18 +29,25 @@ async function request(path, options = {}) {
 }
 
 export const publicApi = {
-  getVenues: (search) => {
-    const params = search ? `?search=${encodeURIComponent(search)}` : "";
-    return request(`/api/public/venues${params}`);
+  getVenues: ({ search, page = 1, limit = 9, sort = "name_asc" } = {}) => {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("limit", String(limit));
+    params.set("sort", sort);
+    if (search) params.set("search", search);
+    return request(`/api/public/venues?${params.toString()}`);
   },
   getVenue: (id) => request(`/api/public/venues/${id}`),
 };
 
 export const adminApi = {
   getDashboard: () => request("/api/admin/dashboard"),
-  getVenues: (search) => {
-    const params = search ? `?search=${encodeURIComponent(search)}` : "";
-    return request(`/api/admin/venues${params}`);
+  getVenues: ({ search, page = 1, limit = 20 } = {}) => {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("limit", String(limit));
+    if (search) params.set("search", search);
+    return request(`/api/admin/venues?${params.toString()}`);
   },
   getVenue: (id) => request(`/api/admin/venues/${id}`),
   createVenue: (body) =>
@@ -66,5 +73,11 @@ export const adminApi = {
 
     return res.data.imageUrl;
   },
-  getAuditLogs: () => request("/api/admin/audit-logs"),
+  getAuditLogs: ({ date, page = 1, limit = 20 } = {}) => {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("limit", String(limit));
+    if (date) params.set("date", date);
+    return request(`/api/admin/audit-logs?${params.toString()}`);
+  },
 };

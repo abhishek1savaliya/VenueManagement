@@ -4,15 +4,17 @@ import { useEffect, useState } from "react";
 import { Building2, Sparkles, X } from "lucide-react";
 import { PublicHeader } from "@/components/layout/public-header";
 import { VenueCard } from "@/components/venues/venue-card";
-import { VenueSearch } from "@/components/venues/venue-search";
+import { MoreVenuesCard } from "@/components/venues/more-venues-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { publicApi } from "@/lib/api";
+
+const FEATURED_LIMIT = 5;
 
 const NOTICE_DURATION_MS = 3000;
 
 export default function HomePage() {
   const [venues, setVenues] = useState([]);
-  const [search, setSearch] = useState("");
+  const [totalVenues, setTotalVenues] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showBackendNotice, setShowBackendNotice] = useState(true);
@@ -23,21 +25,30 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(async () => {
+    let cancelled = false;
+
+    async function loadFeaturedVenues() {
       setLoading(true);
       setError("");
-      try {
-        const res = await publicApi.getVenues(search || undefined);
-        setVenues(res.data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    }, 300);
 
-    return () => clearTimeout(timer);
-  }, [search]);
+      try {
+        const res = await publicApi.getVenues({ page: 1, limit: FEATURED_LIMIT });
+        if (!cancelled) {
+          setVenues(res.data);
+          setTotalVenues(res.pagination?.total ?? res.data.length);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadFeaturedVenues();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -97,16 +108,15 @@ export default function HomePage() {
       </section>
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">
-              Available Venues
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {loading ? "Loading..." : `${venues.length} venue${venues.length !== 1 ? "s" : ""} found`}
-            </p>
-          </div>
-          <VenueSearch value={search} onChange={setSearch} />
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold tracking-tight">
+            Available Venues
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {loading
+              ? "Loading..."
+              : `Showing top ${venues.length} of ${totalVenues} venue${totalVenues !== 1 ? "s" : ""}`}
+          </p>
         </div>
 
         {error && (
@@ -126,7 +136,7 @@ export default function HomePage() {
             <Building2 className="mb-4 h-12 w-12 text-muted-foreground/40" />
             <h3 className="text-lg font-medium">No venues found</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              {search ? "Try a different search term" : "Check back soon for new venues"}
+              Check back soon for new venues
             </p>
           </div>
         ) : (
@@ -134,6 +144,7 @@ export default function HomePage() {
             {venues.map((venue) => (
               <VenueCard key={venue.id} venue={venue} />
             ))}
+            <MoreVenuesCard />
           </div>
         )}
       </main>

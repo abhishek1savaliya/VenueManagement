@@ -29,6 +29,17 @@ function formatAuditLog(log) {
 }
 
 async function findAll({ search, status, activeOnly = false } = {}) {
+  const where = buildVenueWhere({ search, status, activeOnly });
+
+  const venues = await prisma.venue.findMany({
+    where,
+    orderBy: { name: 'asc' },
+  });
+
+  return venues.map(formatVenue);
+}
+
+function buildVenueWhere({ search, status, activeOnly = false } = {}) {
   const where = {};
 
   if (activeOnly) {
@@ -41,12 +52,51 @@ async function findAll({ search, status, activeOnly = false } = {}) {
     where.name = { contains: search, mode: 'insensitive' };
   }
 
-  const venues = await prisma.venue.findMany({
-    where,
-    orderBy: { name: 'asc' },
-  });
+  return where;
+}
 
-  return venues.map(formatVenue);
+function buildVenueOrderBy(sort = 'name_asc') {
+  const sortMap = {
+    name_asc: { name: 'asc' },
+    name_desc: { name: 'desc' },
+    newest: { createdAt: 'desc' },
+  };
+
+  return sortMap[sort] || sortMap.name_asc;
+}
+
+async function findPaginated({
+  search,
+  status,
+  activeOnly = false,
+  page = 1,
+  limit = 9,
+  sort = 'name_asc',
+} = {}) {
+  const where = buildVenueWhere({ search, status, activeOnly });
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(Math.max(1, limit), 50);
+  const skip = (safePage - 1) * safeLimit;
+
+  const [venues, total] = await Promise.all([
+    prisma.venue.findMany({
+      where,
+      orderBy: buildVenueOrderBy(sort),
+      skip,
+      take: safeLimit,
+    }),
+    prisma.venue.count({ where }),
+  ]);
+
+  return {
+    venues: venues.map(formatVenue),
+    pagination: {
+      page: safePage,
+      limit: safeLimit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / safeLimit)),
+    },
+  };
 }
 
 async function findById(id) {
@@ -151,6 +201,44 @@ async function getDashboardStats() {
   return { totalVenues, activeVenues, inactiveVenues };
 }
 
+async function findPaginatedAuditLogs({ date, page = 1, limit = 20 } = {}) {
+  const where = {};
+
+  if (date) {
+    const start = new Date(`${date}T00:00:00.000Z`);
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 1);
+    where.timestamp = { gte: start, lt: end };
+  }
+
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(Math.max(1, limit), 50);
+  const skip = (safePage - 1) * safeLimit;
+
+  const [logs, total] = await Promise.all([
+    prisma.auditLog.findMany({
+      where,
+      orderBy: { timestamp: 'desc' },
+      skip,
+      take: safeLimit,
+    }),
+    prisma.auditLog.count({ where }),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / safeLimit));
+
+  return {
+    logs: logs.map(formatAuditLog),
+    pagination: {
+      page: safePage,
+      limit: safeLimit,
+      total,
+      totalPages,
+      hasMore: safePage < totalPages,
+    },
+  };
+}
+
 async function findAllAuditLogs() {
   const logs = await prisma.auditLog.findMany({
     orderBy: { timestamp: 'desc' },
@@ -161,10 +249,12 @@ async function findAllAuditLogs() {
 module.exports = {
   VALID_STATUSES,
   findAll,
+  findPaginated,
   findById,
   create,
   update,
   remove,
   getDashboardStats,
   findAllAuditLogs,
+  findPaginatedAuditLogs,
 };

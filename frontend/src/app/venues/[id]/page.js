@@ -45,7 +45,7 @@ export default async function VenueDetailPage({ params }) {
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         <Button variant="ghost" size="sm" asChild className="mb-6 -ml-2">
-          <Link href="/">
+          <Link href="/venues">
             <ArrowLeft className="h-4 w-4" />
             Back to venues
           </Link>

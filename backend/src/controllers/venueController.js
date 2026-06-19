@@ -1,10 +1,40 @@
 const venueService = require('../services/venueService');
 
+function parseListQuery(query) {
+  const page = query.page ? parseInt(query.page, 10) : 1;
+  const limit = query.limit ? parseInt(query.limit, 10) : 20;
+  const search = typeof query.search === 'string' ? query.search.trim() : '';
+
+  if (Number.isNaN(page) || page < 1) {
+    return { error: 'Invalid page number' };
+  }
+
+  if (Number.isNaN(limit) || limit < 1) {
+    return { error: 'Invalid limit' };
+  }
+
+  return { page, limit, search };
+}
+
 async function listVenues(req, res, next) {
   try {
-    const { search } = req.query;
-    const venues = await venueService.findAll({ search });
-    res.json({ success: true, data: venues });
+    const parsed = parseListQuery(req.query);
+    if (parsed.error) {
+      return res.status(400).json({ success: false, message: parsed.error });
+    }
+
+    const { page, limit, search } = parsed;
+    const result = await venueService.findPaginated({
+      search: search || undefined,
+      page,
+      limit,
+    });
+
+    res.json({
+      success: true,
+      data: result.venues,
+      pagination: result.pagination,
+    });
   } catch (err) {
     next(err);
   }

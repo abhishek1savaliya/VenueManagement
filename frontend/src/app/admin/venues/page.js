@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, Building2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,30 +34,72 @@ import { VenueSearch } from "@/components/venues/venue-search";
 import { StatusBadge } from "@/components/venues/status-badge";
 import { adminApi } from "@/lib/api";
 
+const PAGE_SIZE = 20;
+
 export default function AdminVenuesPage() {
   const router = useRouter();
   const [venues, setVenues] = useState([]);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const loadMoreRef = useRef(null);
+  const fetchingMoreRef = useRef(false);
 
-  async function loadVenues(query) {
-    setLoading(true);
+  const loadVenues = useCallback(async (pageToLoad, query, append = false) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
-      const res = await adminApi.getVenues(query || undefined);
-      setVenues(res.data);
+      const res = await adminApi.getVenues({
+        search: query || undefined,
+        page: pageToLoad,
+        limit: PAGE_SIZE,
+      });
+
+      setVenues((prev) => (append ? [...prev, ...res.data] : res.data));
+      setHasMore(res.pagination.hasMore);
+      setTotal(res.pagination.total);
+      setPage(pageToLoad);
     } catch (err) {
       toast.error(err.message);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => loadVenues(search), 300);
+    const timer = setTimeout(() => loadVenues(1, search, false), 300);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, loadVenues]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !hasMore || loading || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting || fetchingMoreRef.current) return;
+
+        fetchingMoreRef.current = true;
+        loadVenues(page + 1, search, true).finally(() => {
+          fetchingMoreRef.current = false;
+        });
+      },
+      { rootMargin: "120px" }
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, page, search, loadVenues]);
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -66,7 +108,7 @@ export default function AdminVenuesPage() {
       await adminApi.deleteVenue(deleteTarget.id);
       toast.success(`"${deleteTarget.name}" deleted`);
       setDeleteTarget(null);
-      loadVenues(search);
+      loadVenues(1, search, false);
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -96,7 +138,9 @@ export default function AdminVenuesPage() {
           <div>
             <CardTitle>All Venues</CardTitle>
             <CardDescription>
-              {loading ? "Loading..." : `${venues.length} venue${venues.length !== 1 ? "s" : ""}`}
+              {loading
+                ? "Loading..."
+                : `${total} venue${total !== 1 ? "s" : ""}`}
             </CardDescription>
           </div>
           <VenueSearch value={search} onChange={setSearch} />
@@ -125,52 +169,66 @@ export default function AdminVenuesPage() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead className="hidden md:table-cell">Address</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {venues.map((venue) => (
-                    <TableRow key={venue.id}>
-                      <TableCell className="font-medium">{venue.name}</TableCell>
-                      <TableCell className="hidden max-w-xs truncate md:table-cell text-muted-foreground">
-                        {venue.address}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={venue.status} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              router.push(`/admin/venues/${venue.id}/edit`)
-                            }
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => setDeleteTarget(venue)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+            <>
+              <div className="overflow-x-auto rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead className="hidden md:table-cell">Address</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {venues.map((venue) => (
+                      <TableRow key={venue.id}>
+                        <TableCell className="font-medium">{venue.name}</TableCell>
+                        <TableCell className="hidden max-w-xs truncate text-muted-foreground md:table-cell">
+                          {venue.address}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={venue.status} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                router.push(`/admin/venues/${venue.id}/edit`)
+                              }
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => setDeleteTarget(venue)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div ref={loadMoreRef} className="flex justify-center py-6">
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading more...
+                  </div>
+                )}
+                {!loadingMore && !hasMore && venues.length > 0 && (
+                  <p className="text-sm text-muted-foreground">All venues loaded</p>
+                )}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
