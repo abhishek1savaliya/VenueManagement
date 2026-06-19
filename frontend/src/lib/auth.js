@@ -31,6 +31,14 @@ export function syncAuthCookie() {
   }
 }
 
+export function syncAdminCookie() {
+  if (typeof window === "undefined") return;
+  const token = localStorage.getItem(ADMIN_TOKEN_KEY);
+  if (token) {
+    setCookie(ADMIN_COOKIE, token);
+  }
+}
+
 /** Full-page redirect so middleware sees the auth cookie (router.push can race in production). */
 export function redirectAfterAuth(path) {
   if (typeof window !== "undefined") {
@@ -74,4 +82,5 @@ export function getAuthHeader(token) {
 
 if (typeof window !== "undefined") {
   syncAuthCookie();
+  syncAdminCookie();
 }

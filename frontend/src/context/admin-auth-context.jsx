@@ -6,6 +6,7 @@ import {
   clearAdminToken,
   getAdminToken,
   setAdminToken,
+  syncAdminCookie,
 } from "@/lib/auth";
 
 const AdminAuthContext = createContext(null);
@@ -20,6 +21,8 @@ export function AdminAuthProvider({ children }) {
       setAdmin(null);
       return null;
     }
+
+    syncAdminCookie();
 
     try {
       const res = await adminApi.getMe();

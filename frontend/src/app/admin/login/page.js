@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Building2, Loader2, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { useAdminAuth } from "@/context/admin-auth-context";
@@ -18,11 +19,31 @@ import {
 } from "@/components/ui/card";
 
 export default function AdminLoginPage() {
-  const { login } = useAdminAuth();
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
+      <AdminLoginForm />
+    </Suspense>
+  );
+}
+
+function AdminLoginForm() {
+  const searchParams = useSearchParams();
+  const rawRedirect = searchParams.get("redirect");
+  const redirect =
+    rawRedirect?.startsWith("/admin") && rawRedirect !== "/admin/login"
+      ? rawRedirect
+      : "/admin";
+  const { login, isAuthenticated, loading: authLoading } = useAdminAuth();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      redirectAfterAuth(redirect);
+    }
+  }, [authLoading, isAuthenticated, redirect]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -30,12 +51,20 @@ export default function AdminLoginPage() {
     try {
       await login({ username, password });
       toast.success("Admin signed in");
-      redirectAfterAuth("/admin");
+      redirectAfterAuth(redirect);
     } catch (err) {
       toast.error(err.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  if (authLoading || isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-sidebar">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (
