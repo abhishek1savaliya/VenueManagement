@@ -6,7 +6,18 @@ const COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
 
 function setCookie(name, value, maxAge = COOKIE_MAX_AGE) {
   if (typeof document === "undefined") return;
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  const secure =
+    typeof window !== "undefined" && window.location.protocol === "https:"
+      ? "; Secure"
+      : "";
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
+}
+
+/** Full-page redirect so middleware sees the auth cookie (router.push can race in production). */
+export function redirectAfterAuth(path) {
+  if (typeof window !== "undefined") {
+    window.location.assign(path);
+  }
 }
 
 function clearCookie(name) {

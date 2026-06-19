@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Building2, Loader2, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { useAdminAuth } from "@/context/admin-auth-context";
+import { redirectAfterAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/card";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const { login } = useAdminAuth();
 
   const [username, setUsername] = useState("");
@@ -31,7 +30,7 @@ export default function AdminLoginPage() {
     try {
       await login({ username, password });
       toast.success("Admin signed in");
-      router.push("/admin");
+      redirectAfterAuth("/admin");
     } catch (err) {
       toast.error(err.message);
     } finally {

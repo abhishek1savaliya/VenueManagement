@@ -2,10 +2,11 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
+import { redirectAfterAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +27,6 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
   const { signin } = useAuth();
@@ -41,7 +41,7 @@ function LoginForm() {
     try {
       await signin({ email, password });
       toast.success("Welcome back!");
-      router.push(redirect);
+      redirectAfterAuth(redirect);
     } catch (err) {
       toast.error(err.message);
     } finally {

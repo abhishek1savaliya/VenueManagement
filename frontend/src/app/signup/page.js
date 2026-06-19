@@ -2,10 +2,11 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
+import { redirectAfterAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +27,6 @@ export default function SignupPage() {
 }
 
 function SignupForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
   const { signup } = useAuth();
@@ -63,7 +63,7 @@ function SignupForm() {
         password: form.password,
       });
       toast.success("Account created successfully!");
-      router.push(redirect);
+      redirectAfterAuth(redirect);
     } catch (err) {
       toast.error(err.message);
     } finally {
