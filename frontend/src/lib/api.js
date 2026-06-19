@@ -3,12 +3,16 @@ const API_BASE_URL =
 
 async function request(path, options = {}) {
   const url = `${API_BASE_URL}${path}`;
+  const isFormData = options.body instanceof FormData;
+
   const res = await fetch(url, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
+    headers: isFormData
+      ? { ...options.headers }
+      : {
+          "Content-Type": "application/json",
+          ...options.headers,
+        },
   });
 
   const data = await res.json().catch(() => ({}));
@@ -48,5 +52,19 @@ export const adminApi = {
     }),
   deleteVenue: (id) =>
     request(`/api/admin/venues/${id}`, { method: "DELETE" }),
+  uploadVenuePhoto: async (file, venueId) => {
+    const formData = new FormData();
+    formData.append("photo", file);
+    if (venueId) {
+      formData.append("venueId", String(venueId));
+    }
+
+    const res = await request("/api/admin/venues/upload-photo", {
+      method: "POST",
+      body: formData,
+    });
+
+    return res.data.imageUrl;
+  },
   getAuditLogs: () => request("/api/admin/audit-logs"),
 };

@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin, Calendar } from "lucide-react";
 import { PublicHeader } from "@/components/layout/public-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { VenuePhotoGallery } from "@/components/venues/venue-photo-gallery";
 import { publicApi } from "@/lib/api";
 
 export async function generateMetadata({ params }) {
@@ -51,7 +52,12 @@ export default async function VenueDetailPage({ params }) {
         </Button>
 
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-          <div className="h-3 bg-gradient-to-r from-primary/80 via-primary to-primary/60" />
+          <VenuePhotoGallery
+            photos={venue.imageUrls}
+            alt={venue.name}
+            className="w-full"
+            priority
+          />
 
           <div className="p-6 sm:p-10">
             <div className="mb-6 flex flex-wrap items-start justify-between gap-4">

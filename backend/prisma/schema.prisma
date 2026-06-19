@@ -12,6 +12,7 @@ model Venue {
   name        String   @db.VarChar(255)
   address     String   @db.Text
   description String   @default("") @db.Text
+  imageUrls   String[] @default([]) @map("image_urls")
   status      String   @db.VarChar(20)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)

@@ -7,12 +7,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { VenueCardPhotos } from "@/components/venues/venue-card-photos";
 
 export function VenueCard({ venue }) {
   return (
     <Link href={`/venues/${venue.id}`} className="group block h-full">
       <Card className="h-full overflow-hidden border-border/60 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
-        <div className="h-2 bg-gradient-to-r from-primary/80 via-primary to-primary/60" />
+        <VenueCardPhotos photos={venue.imageUrls} alt={venue.name} />
         <CardHeader className="pb-3">
           <CardTitle className="line-clamp-1 text-lg transition-colors group-hover:text-primary">
             {venue.name}

@@ -36,6 +36,20 @@ function errorHandler(err, req, res, next) {
     });
   }
 
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({
+      success: false,
+      message: 'Photo must be 5 MB or smaller',
+    });
+  }
+
+  if (err.message === 'Only image files are allowed') {
+    return res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'An unexpected error occurred',

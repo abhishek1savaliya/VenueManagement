@@ -32,6 +32,16 @@ function validateVenueBody(body, { partial = false } = {}) {
     data.description = typeof body.description === 'string' ? body.description.trim() : '';
   }
 
+  if (body.imageUrls !== undefined) {
+    if (!Array.isArray(body.imageUrls)) {
+      errors.push({ field: 'imageUrls', message: 'Image URLs must be an array' });
+    } else {
+      data.imageUrls = body.imageUrls
+        .filter((url) => typeof url === 'string' && url.trim())
+        .map((url) => url.trim());
+    }
+  }
+
   return { errors, data };
 }
 

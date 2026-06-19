@@ -1,4 +1,5 @@
 const prisma = require('../db/prisma');
+const storageService = require('./storageService');
 
 const VALID_STATUSES = ['active', 'inactive'];
 
@@ -9,6 +10,7 @@ function formatVenue(venue) {
     name: venue.name,
     address: venue.address,
     description: venue.description || '',
+    imageUrls: venue.imageUrls || [],
     status: venue.status,
     createdAt: venue.createdAt,
     updatedAt: venue.updatedAt,
@@ -52,13 +54,14 @@ async function findById(id) {
   return formatVenue(venue);
 }
 
-async function create({ name, address, description, status }) {
+async function create({ name, address, description, imageUrls, status }) {
   return prisma.$transaction(async (tx) => {
     const venue = await tx.venue.create({
       data: {
         name,
         address,
         description: description || '',
+        imageUrls: imageUrls || [],
         status,
       },
     });
@@ -75,17 +78,28 @@ async function create({ name, address, description, status }) {
   });
 }
 
-async function update(id, { name, address, description, status }) {
-  return prisma.$transaction(async (tx) => {
-    const existing = await tx.venue.findUnique({ where: { id } });
-    if (!existing) return null;
+async function update(id, { name, address, description, imageUrls, status }) {
+  const existing = await prisma.venue.findUnique({ where: { id } });
+  if (!existing) return null;
 
-    const venue = await tx.venue.update({
+  const nextImageUrls = imageUrls || [];
+  const removedImageUrls = storageService.getRemovedImageUrls(
+    existing.imageUrls || [],
+    nextImageUrls
+  );
+
+  if (removedImageUrls.length) {
+    await storageService.deleteVenuePhotos(removedImageUrls);
+  }
+
+  const venue = await prisma.$transaction(async (tx) => {
+    const updated = await tx.venue.update({
       where: { id },
       data: {
         name,
         address,
         description: description || '',
+        imageUrls: nextImageUrls,
         status,
       },
     });
@@ -93,20 +107,22 @@ async function update(id, { name, address, description, status }) {
     await tx.auditLog.create({
       data: {
         actionType: 'updated',
-        venueName: venue.name,
-        venueId: venue.id,
+        venueName: updated.name,
+        venueId: updated.id,
       },
     });
 
-    return formatVenue(venue);
+    return updated;
   });
+
+  return formatVenue(venue);
 }
 
 async function remove(id) {
-  return prisma.$transaction(async (tx) => {
-    const existing = await tx.venue.findUnique({ where: { id } });
-    if (!existing) return null;
+  const existing = await prisma.venue.findUnique({ where: { id } });
+  if (!existing) return null;
 
+  const deleted = await prisma.$transaction(async (tx) => {
     await tx.venue.delete({ where: { id } });
 
     await tx.auditLog.create({
@@ -119,6 +135,10 @@ async function remove(id) {
 
     return formatVenue(existing);
   });
+
+  await storageService.deleteVenuePhotoFolder(id);
+
+  return deleted;
 }
 
 async function getDashboardStats() {
