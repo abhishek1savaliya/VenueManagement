@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Building2,
   CheckCircle2,
+  Users,
   XCircle,
   Plus,
   ArrowRight,
@@ -75,9 +76,9 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {loading ? (
-          Array.from({ length: 3 }).map((_, i) => (
+          Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-32 rounded-xl" />
           ))
         ) : stats ? (
@@ -103,6 +104,13 @@ export default function AdminDashboardPage() {
               icon={XCircle}
               accent="bg-amber-100 text-amber-700"
             />
+            <StatCard
+              title="Total Users"
+              value={stats.totalUsers}
+              description="Registered accounts"
+              icon={Users}
+              accent="bg-blue-100 text-blue-700"
+            />
           </>
         ) : null}
       </div>
@@ -115,8 +123,20 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             <Button variant="outline" className="w-full justify-between" asChild>
+              <Link href="/admin/analytics">
+                Venue Analytics
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button variant="outline" className="w-full justify-between" asChild>
               <Link href="/admin/venues">
                 Manage Venues
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button variant="outline" className="w-full justify-between" asChild>
+              <Link href="/admin/users">
+                Manage Users
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>

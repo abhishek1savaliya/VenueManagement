@@ -14,21 +14,79 @@ model Venue {
   description String   @default("") @db.Text
   imageUrls   String[] @default([]) @map("image_urls")
   status      String   @db.VarChar(20)
+  viewCount   Int      @default(0) @map("view_count")
+  searchHits  Int      @default(0) @map("search_hits")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([name], map: "idx_venues_name")
   @@index([status], map: "idx_venues_status")
+  @@index([viewCount(sort: Desc)], map: "idx_venues_view_count")
+  @@index([searchHits(sort: Desc)], map: "idx_venues_search_hits")
   @@map("venues")
 }
 
 model AuditLog {
   id         Int      @id @default(autoincrement())
+  category   String   @default("venue") @db.VarChar(20)
   actionType String   @map("action_type") @db.VarChar(20)
-  venueName  String   @map("venue_name") @db.VarChar(255)
+  venueName  String?  @map("venue_name") @db.VarChar(255)
   venueId    Int?     @map("venue_id")
+  userName   String?  @map("user_name") @db.VarChar(255)
+  userId     Int?     @map("user_id")
+  message    String?  @db.Text
+  source     String?  @db.VarChar(255)
+  statusCode Int?     @map("status_code")
   timestamp  DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([timestamp(sort: Desc)], map: "idx_audit_logs_timestamp")
+  @@index([category], map: "idx_audit_logs_category")
   @@map("audit_logs")
+}
+
+model User {
+  id              Int      @id @default(autoincrement())
+  firstName       String   @map("first_name") @db.VarChar(100)
+  lastName        String   @map("last_name") @db.VarChar(100)
+  email           String   @unique @db.VarChar(255)
+  phone           String?  @db.VarChar(30)
+  passwordHash    String   @map("password_hash") @db.VarChar(255)
+  profilePhotoUrl String?  @map("profile_photo_url") @db.Text
+  status          String   @default("active") @db.VarChar(20)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([email], map: "idx_users_email")
+  @@index([status], map: "idx_users_status")
+  @@index([firstName, lastName], map: "idx_users_name")
+  @@map("users")
+}
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique @db.VarChar(100)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("admins")
+}
+
+model SiteAnalytics {
+  id          Int @id @default(1)
+  listViews   Int @default(0) @map("list_views")
+  searches    Int @default(0)
+  detailViews Int @default(0) @map("detail_views")
+
+  @@map("site_analytics")
+}
+
+model VenueSearchLog {
+  id          Int      @id @default(autoincrement())
+  searchQuery String   @map("search_query") @db.VarChar(255)
+  resultCount Int      @default(0) @map("result_count")
+  timestamp   DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([searchQuery], map: "idx_venue_search_logs_query")
+  @@index([timestamp(sort: Desc)], map: "idx_venue_search_logs_timestamp")
+  @@map("venue_search_logs")
 }

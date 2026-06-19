@@ -1,5 +1,6 @@
 const prisma = require('../db/prisma');
 const storageService = require('./storageService');
+const auditLogService = require('./auditLogService');
 
 const VALID_STATUSES = ['active', 'inactive'];
 
@@ -18,14 +19,7 @@ function formatVenue(venue) {
 }
 
 function formatAuditLog(log) {
-  if (!log) return null;
-  return {
-    id: log.id,
-    actionType: log.actionType,
-    venueName: log.venueName,
-    venueId: log.venueId,
-    timestamp: log.timestamp,
-  };
+  return auditLogService.formatAuditLog(log);
 }
 
 async function findAll({ search, status, activeOnly = false } = {}) {
@@ -116,13 +110,10 @@ async function create({ name, address, description, imageUrls, status }) {
       },
     });
 
-    await tx.auditLog.create({
-      data: {
-        actionType: 'created',
-        venueName: venue.name,
-        venueId: venue.id,
-      },
-    });
+    await auditLogService.logVenue(
+      { actionType: 'created', venueName: venue.name, venueId: venue.id },
+      tx
+    );
 
     return formatVenue(venue);
   });
@@ -154,13 +145,10 @@ async function update(id, { name, address, description, imageUrls, status }) {
       },
     });
 
-    await tx.auditLog.create({
-      data: {
-        actionType: 'updated',
-        venueName: updated.name,
-        venueId: updated.id,
-      },
-    });
+    await auditLogService.logVenue(
+      { actionType: 'updated', venueName: updated.name, venueId: updated.id },
+      tx
+    );
 
     return updated;
   });
@@ -175,13 +163,10 @@ async function remove(id) {
   const deleted = await prisma.$transaction(async (tx) => {
     await tx.venue.delete({ where: { id } });
 
-    await tx.auditLog.create({
-      data: {
-        actionType: 'deleted',
-        venueName: existing.name,
-        venueId: existing.id,
-      },
-    });
+    await auditLogService.logVenue(
+      { actionType: 'deleted', venueName: existing.name, venueId: existing.id },
+      tx
+    );
 
     return formatVenue(existing);
   });
@@ -192,58 +177,24 @@ async function remove(id) {
 }
 
 async function getDashboardStats() {
-  const [totalVenues, activeVenues, inactiveVenues] = await Promise.all([
+  const userService = require('./userService');
+  const [totalVenues, activeVenues, inactiveVenues, totalUsers] = await Promise.all([
     prisma.venue.count(),
     prisma.venue.count({ where: { status: 'active' } }),
     prisma.venue.count({ where: { status: 'inactive' } }),
+    userService.countAll(),
   ]);
 
-  return { totalVenues, activeVenues, inactiveVenues };
+  return { totalVenues, activeVenues, inactiveVenues, totalUsers };
 }
 
-async function findPaginatedAuditLogs({ date, page = 1, limit = 20 } = {}) {
-  const where = {};
-
-  if (date) {
-    const start = new Date(`${date}T00:00:00.000Z`);
-    const end = new Date(start);
-    end.setUTCDate(end.getUTCDate() + 1);
-    where.timestamp = { gte: start, lt: end };
-  }
-
-  const safePage = Math.max(1, page);
-  const safeLimit = Math.min(Math.max(1, limit), 50);
-  const skip = (safePage - 1) * safeLimit;
-
-  const [logs, total] = await Promise.all([
-    prisma.auditLog.findMany({
-      where,
-      orderBy: { timestamp: 'desc' },
-      skip,
-      take: safeLimit,
-    }),
-    prisma.auditLog.count({ where }),
-  ]);
-
-  const totalPages = Math.max(1, Math.ceil(total / safeLimit));
-
-  return {
-    logs: logs.map(formatAuditLog),
-    pagination: {
-      page: safePage,
-      limit: safeLimit,
-      total,
-      totalPages,
-      hasMore: safePage < totalPages,
-    },
-  };
+async function findPaginatedAuditLogs(params) {
+  return auditLogService.findPaginated(params);
 }
 
 async function findAllAuditLogs() {
-  const logs = await prisma.auditLog.findMany({
-    orderBy: { timestamp: 'desc' },
-  });
-  return logs.map(formatAuditLog);
+  const result = await auditLogService.findPaginated({ limit: 1000 });
+  return result.logs;
 }
 
 module.exports = {

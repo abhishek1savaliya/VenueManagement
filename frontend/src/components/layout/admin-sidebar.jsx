@@ -3,21 +3,29 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
   Building2,
   ClipboardList,
   LayoutDashboard,
+  LogOut,
   Menu,
+  Settings,
+  Users,
   X,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useAdminAuth } from "@/context/admin-auth-context";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/venues", label: "Venues", icon: Building2 },
+  { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/audit-logs", label: "Audit Logs", icon: ClipboardList },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 function NavLink({ item, onClick }) {
@@ -46,6 +54,7 @@ function NavLink({ item, onClick }) {
 
 export function AdminSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { admin, signout } = useAdminAuth();
 
   const sidebar = (
     <div className="flex h-full flex-col">
@@ -69,7 +78,23 @@ export function AdminSidebar() {
         ))}
       </nav>
       <Separator className="bg-sidebar-border" />
-      <div className="p-4">
+      <div className="space-y-1 p-4">
+        {admin && (
+          <p className="px-3 py-1 text-xs text-sidebar-foreground/50">
+            Signed in as {admin.username}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            signout();
+            window.location.href = "/admin/login";
+          }}
+          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </button>
         <Link
           href="/"
           className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"

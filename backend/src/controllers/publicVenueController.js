@@ -1,4 +1,5 @@
 const venueService = require('../services/venueService');
+const venueAnalyticsService = require('../services/venueAnalyticsService');
 
 const VALID_SORTS = ['name_asc', 'name_desc', 'newest'];
 
@@ -35,6 +36,14 @@ async function listPublicVenues(req, res, next) {
       sort,
     });
 
+    venueAnalyticsService.recordListView();
+    if (search) {
+      venueAnalyticsService.recordSearch(
+        search,
+        result.venues.map((v) => v.id)
+      );
+    }
+
     res.json({
       success: true,
       data: result.venues,
@@ -51,6 +60,8 @@ async function getPublicVenue(req, res, next) {
     if (!venue || venue.status !== 'active') {
       return res.status(404).json({ success: false, message: 'Venue not found' });
     }
+
+    venueAnalyticsService.recordVenueView(req.venueId);
     res.json({ success: true, data: venue });
   } catch (err) {
     next(err);

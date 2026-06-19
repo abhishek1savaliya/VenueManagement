@@ -89,6 +89,30 @@ async function deleteVenuePhotoFolder(venueId) {
   }
 }
 
+async function uploadProfilePhoto(buffer, mimeType, { userId, originalName } = {}) {
+  const extension = originalName?.split('.').pop()?.toLowerCase() || 'jpg';
+  const path = `users/${userId}/${Date.now()}.${extension}`;
+
+  const { data, error } = await getSupabase().storage
+    .from(VENUE_PHOTOS_BUCKET)
+    .upload(path, buffer, {
+      contentType: mimeType,
+      cacheControl: '3600',
+      upsert: true,
+    });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const { data: urlData } = getSupabase()
+    .storage
+    .from(VENUE_PHOTOS_BUCKET)
+    .getPublicUrl(data.path);
+
+  return urlData.publicUrl;
+}
+
 function getRemovedImageUrls(previousUrls = [], nextUrls = []) {
   const nextSet = new Set(nextUrls);
   return previousUrls.filter((url) => !nextSet.has(url));
@@ -96,6 +120,7 @@ function getRemovedImageUrls(previousUrls = [], nextUrls = []) {
 
 module.exports = {
   uploadVenuePhoto,
+  uploadProfilePhoto,
   deleteVenuePhoto,
   deleteVenuePhotos,
   deleteVenuePhotoFolder,
