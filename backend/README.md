@@ -87,6 +87,7 @@ POST /api/admin/venues
 - Node.js, Express
 - PostgreSQL (Neon) with **Prisma ORM**
 - JavaScript (no TypeScript)
+- Supabase image storage bucket
 
 ## Database (Prisma)
 
