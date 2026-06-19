@@ -5,6 +5,7 @@ import { PublicHeader } from "@/components/layout/public-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { VenuePhotoGallery } from "@/components/venues/venue-photo-gallery";
+import { VenueCard } from "@/components/venues/venue-card";
 import { publicApi } from "@/lib/api";
 
 export async function generateMetadata({ params }) {
@@ -31,10 +32,16 @@ function formatDate(dateStr) {
 export default async function VenueDetailPage({ params }) {
   const { id } = await params;
   let venue;
+  let moreVenues = [];
 
   try {
     const res = await publicApi.getVenue(id);
     venue = res.data;
+
+    const othersRes = await publicApi.getVenues({ page: 1, limit: 6 });
+    moreVenues = othersRes.data
+      .filter((item) => item.id !== venue.id)
+      .slice(0, 5);
   } catch {
     notFound();
   }
@@ -43,15 +50,16 @@ export default async function VenueDetailPage({ params }) {
     <div className="flex min-h-screen flex-col">
       <PublicHeader />
 
-      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
-        <Button variant="ghost" size="sm" asChild className="mb-6 -ml-2">
-          <Link href="/venues">
-            <ArrowLeft className="h-4 w-4" />
-            Back to venues
-          </Link>
-        </Button>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-4xl">
+          <Button variant="ghost" size="sm" asChild className="mb-6 -ml-2">
+            <Link href="/venues">
+              <ArrowLeft className="h-4 w-4" />
+              Back to venues
+            </Link>
+          </Button>
 
-        <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+          <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
           <VenuePhotoGallery
             photos={venue.imageUrls}
             alt={venue.name}
@@ -91,7 +99,24 @@ export default async function VenueDetailPage({ params }) {
               </p>
             </div>
           </div>
+          </div>
         </div>
+
+        {moreVenues.length > 0 && (
+          <section className="mt-14">
+            <div className="mb-6">
+              <h2 className="text-2xl font-semibold tracking-tight">More Venues</h2>
+              <p className="text-sm text-muted-foreground">
+                Explore other available event spaces
+              </p>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {moreVenues.map((item) => (
+                <VenueCard key={item.id} venue={item} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
