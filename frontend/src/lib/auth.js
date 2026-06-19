@@ -13,16 +13,29 @@ function setCookie(name, value, maxAge = COOKIE_MAX_AGE) {
   document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
 }
 
-/** Full-page redirect so middleware sees the auth cookie (router.push can race in production). */
-export function redirectAfterAuth(path) {
-  if (typeof window !== "undefined") {
-    window.location.assign(path);
+function clearCookie(name) {
+  if (typeof document === "undefined") return;
+  const secure =
+    typeof window !== "undefined" && window.location.protocol === "https:"
+      ? "; Secure"
+      : "";
+  document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax${secure}`;
+}
+
+/** Keep the middleware-readable cookie in sync with localStorage. */
+export function syncAuthCookie() {
+  if (typeof window === "undefined") return;
+  const token = localStorage.getItem(USER_TOKEN_KEY);
+  if (token) {
+    setCookie(USER_COOKIE, token);
   }
 }
 
-function clearCookie(name) {
-  if (typeof document === "undefined") return;
-  document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
+/** Full-page redirect so middleware sees the auth cookie (router.push can race in production). */
+export function redirectAfterAuth(path) {
+  if (typeof window !== "undefined") {
+    window.location.replace(path);
+  }
 }
 
 export function getUserToken() {
@@ -57,4 +70,8 @@ export function clearAdminToken() {
 
 export function getAuthHeader(token) {
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+if (typeof window !== "undefined") {
+  syncAuthCookie();
 }

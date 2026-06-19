@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Building2, Loader2 } from "lucide-react";
@@ -29,11 +29,17 @@ export default function LoginPage() {
 function LoginForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
-  const { signin } = useAuth();
+  const { signin, isAuthenticated, loading: authLoading } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      redirectAfterAuth(redirect);
+    }
+  }, [authLoading, isAuthenticated, redirect]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -47,6 +53,14 @@ function LoginForm() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (authLoading || isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (

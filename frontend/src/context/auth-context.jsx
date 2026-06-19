@@ -6,6 +6,7 @@ import {
   clearUserToken,
   getUserToken,
   setUserToken,
+  syncAuthCookie,
 } from "@/lib/auth";
 
 const AuthContext = createContext(null);
@@ -20,6 +21,8 @@ export function AuthProvider({ children }) {
       setUser(null);
       return null;
     }
+
+    syncAuthCookie();
 
     try {
       const res = await authApi.getMe();

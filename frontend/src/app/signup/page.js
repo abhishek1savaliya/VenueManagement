@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Building2, Loader2 } from "lucide-react";
@@ -29,7 +29,7 @@ export default function SignupPage() {
 function SignupForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
-  const { signup } = useAuth();
+  const { signup, isAuthenticated, loading: authLoading } = useAuth();
 
   const [form, setForm] = useState({
     firstName: "",
@@ -40,6 +40,12 @@ function SignupForm() {
     confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      redirectAfterAuth(redirect);
+    }
+  }, [authLoading, isAuthenticated, redirect]);
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -69,6 +75,14 @@ function SignupForm() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (authLoading || isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (
