@@ -70,3 +70,17 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
 }
+
+@keyframes notice-shrink {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.notice-progress {
+  transform-origin: left;
+}

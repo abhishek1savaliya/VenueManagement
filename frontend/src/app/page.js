@@ -1,18 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, Sparkles } from "lucide-react";
+import { Building2, Sparkles, X } from "lucide-react";
 import { PublicHeader } from "@/components/layout/public-header";
 import { VenueCard } from "@/components/venues/venue-card";
 import { VenueSearch } from "@/components/venues/venue-search";
 import { Skeleton } from "@/components/ui/skeleton";
 import { publicApi } from "@/lib/api";
 
+const NOTICE_DURATION_MS = 3000;
+
 export default function HomePage() {
   const [venues, setVenues] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showBackendNotice, setShowBackendNotice] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowBackendNotice(false), NOTICE_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -33,6 +41,39 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      {showBackendNotice && (
+        <div
+          role="alert"
+          className="fixed right-4 top-20 z-[60] w-full max-w-sm animate-in fade-in slide-in-from-top-2 overflow-hidden rounded-lg border bg-background shadow-lg duration-300 sm:right-6"
+        >
+          <div className="p-4 pr-10">
+            <button
+              type="button"
+              onClick={() => setShowBackendNotice(false)}
+              className="absolute right-3 top-3 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              aria-label="Close notice"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <p className="text-base font-semibold leading-none tracking-tight">
+              Please bear with us
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Our backend runs on a free server and may take up to 60 seconds to
+              fully load when waking up. Sorry for the inconvenience.
+            </p>
+          </div>
+          <div className="h-1 w-full bg-muted">
+            <div
+              className="notice-progress h-full bg-primary"
+              style={{
+                animation: `notice-shrink ${NOTICE_DURATION_MS}ms linear forwards`,
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       <PublicHeader />
 
       <section className="relative overflow-hidden border-b bg-gradient-to-br from-primary/5 via-background to-accent/30">
