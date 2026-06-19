@@ -60,6 +60,11 @@ export default function AdminLoginPage() {
           <CardDescription>
             Enter your admin credentials to access the management panel
           </CardDescription>
+          <p className="mt-3 rounded-lg bg-muted px-3 py-2 text-center text-sm text-muted-foreground">
+            Default credentials:{" "}
+            <span className="font-medium text-foreground">admin</span> /{" "}
+            <span className="font-medium text-foreground">admin</span>
+          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

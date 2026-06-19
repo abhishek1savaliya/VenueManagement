@@ -1,36 +1,128 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# MyVenue Frontend
 
-## Getting Started
+Next.js web app for discovering venues (public) and managing the platform (admin).
 
-First, run the development server:
+## Setup
+
+```bash
+npm install
+```
+
+Create `.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5000
+```
+
+For production, point to the deployed backend:
+
+```env
+NEXT_PUBLIC_API_URL=https://venuemanagement.onrender.com
+```
+
+Start the backend first, then:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev    # development server
+npm run build  # production build
+npm start      # run production build
+```
 
-## Learn More
+## Public Routes
 
-To learn more about Next.js, take a look at the following resources:
+| Route | Description |
+|-------|-------------|
+| `/` | Home — featured venues |
+| `/venues` | Browse all venues (search, sort, pagination) |
+| `/venues/[id]` | Venue detail (**login required**) |
+| `/login` | User sign in |
+| `/signup` | User registration |
+| `/profile` | User profile, password, photo, account deletion |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### User Features
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Sign up with first name, last name, email, optional phone, and password
+- Sign in / sign out
+- Edit profile and change password
+- Upload optional profile photo
+- Delete account (password confirmation required)
+- Venue detail pages are protected — unauthenticated users are redirected to login
 
-## Deploy on Vercel
+## Admin Routes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Route | Description |
+|-------|-------------|
+| `/admin/login` | Admin sign in (default: `admin` / `admin`) |
+| `/admin` | Dashboard — venue and user stats |
+| `/admin/analytics` | Venue funnel, views, searches |
+| `/admin/venues` | Venue CRUD |
+| `/admin/venues/new` | Create venue |
+| `/admin/venues/[id]/edit` | Edit venue |
+| `/admin/users` | View, search, activate/deactivate users |
+| `/admin/audit-logs` | Venue, user, and general system logs |
+| `/admin/settings` | Change admin credentials |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+All `/admin/*` routes except `/admin/login` require admin authentication.
+
+### Admin Features
+
+- **Dashboard** — total venues, active/inactive counts, registered users
+- **Analytics** — visitor funnel (browse → search → detail view), most viewed venues, most searched venues, top search terms
+- **Venues** — full CRUD with photo upload via Supabase
+- **Users** — list, search, deactivate/activate accounts
+- **Audit Logs** — tabbed view for Venue Logs, User Logs, and General Logs (errors, access denied, downtime)
+- **Settings** — change admin ID and password
+
+## Project Structure
+
+```
+src/
+├── app/                  # Next.js App Router pages
+│   ├── admin/            # Admin panel
+│   ├── login/            # User auth
+│   ├── profile/          # User profile
+│   └── venues/           # Public venue pages
+├── components/
+│   ├── layout/           # Headers, sidebars
+│   ├── ui/               # shadcn-style UI primitives
+│   └── venues/           # Venue-specific components
+├── context/              # Auth providers (user + admin)
+├── lib/
+│   ├── api.js            # API client
+│   └── auth.js           # Token storage (localStorage + cookies)
+└── middleware.js         # Route protection for /venues/[id] and /admin/*
+```
+
+## Route Protection
+
+`middleware.js` enforces:
+
+- `/venues/[id]` — requires user auth cookie; redirects to `/login?redirect=...`
+- `/admin/*` (except login) — requires admin auth cookie; redirects to `/admin/login`
+
+## Tech Stack
+
+- **Next.js 16** (App Router)
+- **React 19**
+- **Tailwind CSS v4**
+- **Radix UI** + shadcn-style components
+- **lucide-react** icons
+- **sonner** toasts
+
+## Connecting to the Backend
+
+The API client in `src/lib/api.js` exports:
+
+- `publicApi` — public venue endpoints
+- `authApi` — user authentication (auto-attaches user token)
+- `adminApi` — admin endpoints (auto-attaches admin token)
+
+Tokens are stored in `localStorage` and set as cookies for middleware route protection.
